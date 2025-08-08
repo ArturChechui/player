@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        compiler: [gcc, clang]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build g++ clang shfmt shellcheck
+
+      - name: Configure (CMake)
+        run: |
+          CXX=$([ "${{ matrix.compiler }}" = "gcc" ] && echo g++ || echo clang++)
+          cmake -S . -B build -G Ninja -DCMAKE_CXX_STANDARD=23 -DCMAKE_CXX_COMPILER=${CXX}
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Run tests (ctest if you have them)
+        run: ctest --test-dir build --output-on-failure || true
+
+      - name: Check shell formatting (shfmt)
+        run: shfmt -d .
+
+      - name: Lint shell scripts (ShellCheck)
+        run: |
+          SCRIPTS=$(git ls-files '*.sh' || true)
+          [ -z "$SCRIPTS" ] || shellcheck $SCRIPTS
