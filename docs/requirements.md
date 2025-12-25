@@ -83,41 +83,52 @@ Acceptance:
 - Temp/Hum values update periodically and do not disrupt playback.
 
 ### FR-07 Persistence (NVS)
+
 Persist in NVS:
-- `autoplay` (bool): whether device should auto-start playback on boot
-- `last_station_id` (string): id of last active station
-- `volume` (0..100)
+* `autoplay` (bool): whether device should auto-start playback on boot
+* `last_station_id` (string): id of last active station
+* `volume` (uint8 0..100)
 
 Rules:
-- When Play starts successfully: set `autoplay=true`, store `last_station_id`.
-- When user presses Stop: set `autoplay=false`.
-- Volume updates persist with debounce (e.g., save 1–2s after last change).
+* When playback successfully transitions to `Playing`: set `autoplay=true` and store `last_station_id=<active station>`.
+* When user presses `Stop` and state becomes `Stopped`: set `autoplay=false`.
+* Volume persists with debounce: save **1–2 seconds after the last volume change** (coalescing multiple updates).
 
 Acceptance:
-- After reboot, device restores last volume.
-- If `autoplay=true`, device attempts to start last station.
+* After setting `volume=V`, rebooting, and reading settings, volume equals V.
+* After a successful Play (state reaches `Playing`), `autoplay=true` and `last_station_id` equals the active station id (verified by reading NVS).
+* After Stop (state becomes `Stopped`), `autoplay=false` (verified by reading NVS).
+* Volume debounce: during rapid encoder rotation (≥10 changes within 2 seconds), NVS write occurs **at most once** per debounce window, and final stored volume equals the last value.
+
+Notes:
+* If NVS keys are missing or corrupted, fall back to defaults: `autoplay=false`, `volume=50`, `last_station_id=""`.
 
 ### FR-08 Wi-Fi configuration (v0.1)
-- Wi-Fi credentials are provided via hardcoded configuration (v0.1 bring-up).
-- Implementation may cache credentials in NVS, but user provisioning is out of scope for v0.1.
 
-### FR-09 Boot behavior
-On boot:
-1) Load station list from LittleFS into RAM (active list for this session).
-2) Read settings from NVS (autoplay, last_station_id, volume).
-3) If `autoplay=true`, attempt to play `last_station_id`.
-   - If missing: show message “Last station missing” and remain stopped.
+* Device connects to Wi-Fi automatically on boot using build-time configured SSID/password (hardcoded in v0.1).
+* UI exposes Wi-Fi state: `Connecting`, `Connected`, `Disconnected`.
+* If Wi-Fi disconnects, device retries reconnect in background.
+* User provisioning is out of scope for v0.1 (V3).
 
 Acceptance:
-- Device boots into usable UI without requiring network.
-- Autoplay does not block UI rendering (start playback asynchronously).
+* With valid credentials, device reaches `Connected` within **30s** after boot.
+* With invalid credentials/unavailable AP, device reaches `Disconnected` within **30s** and UI remains usable.
+* After a disconnect event, device retries and can return to `Connected` without reboot.
 
-### FR-10 Station list storage (LittleFS)
-- Store `stations.json` in LittleFS.
-- The station list loaded into RAM remains fixed for the session (no hot-swap in v0.1).
+
+### FR-09 Station list storage (LittleFS)
+* Device shall store the station list as `stations.json` in LittleFS.
+* On boot, device shall load `stations.json` into RAM and use it for the whole session (no hot-swap in v0.1).
+* Station list schema is JSON array of objects `{id,name,url}`.
 
 Constraints:
-- V0.1 cap: max 10 stations.
+* v0.1 cap: **10** stations.
+
+Acceptance:
+* If `stations.json` exists and is valid, device loads it and displays stations in the UI.
+* If `stations.json` is missing or invalid, device displays “No stations available” and playback cannot be started.
+* If `stations.json` becomes valid on the next boot, station list is shown and playback becomes available.
+* After loading, the in-RAM list remains unchanged even if `stations.json` changes on flash (updates require reboot to apply).
 
 JSON schema v0.1:
 ```json
@@ -127,46 +138,98 @@ JSON schema v0.1:
 ]
 ````
 
+Notes:
+* Validation rules: non-empty `id/name/url`, url starts with `http://` or `https://`.
+* IDs must be unique within the file.
+
+### FR-10 Boot behavior
+On boot, the device shall:
+1. Initialize UI and show a boot status (e.g., “Starting…”).
+2. Load station list for the session:
+   * Load `stations.json` from LittleFS (FR-09).
+   * If missing/invalid, show “No stations available” and skip autoplay.
+3. Load settings from NVS (FR-07): `autoplay`, `last_station_id`, `volume`.
+4. Start Wi-Fi connection in background (FR-08).
+5. If `autoplay=true`, attempt to start playback of `last_station_id` after:
+   * station list is loaded, and
+   * Wi-Fi is connected (or once it becomes connected).
+
+Behavior:
+* If `autoplay=true` but `last_station_id` is not found in the loaded station list, the device shall show “Last station missing” and remain stopped.
+* If station list is unavailable, autoplay is ignored for this boot (device remains stopped).
+* Boot shall not block UI responsiveness; playback start runs asynchronously.
+
+Acceptance:
+* Device reaches a usable UI state (station list visible) without requiring network connectivity.
+* If `autoplay=false`, device stays stopped and does not start playback automatically.
+* If `autoplay=true` and last station exists, device eventually starts playback after Wi-Fi connects (no manual input required).
+* If `autoplay=true` and last station is missing, device shows “Last station missing” and remains stopped.
+
+Notes:
+* “Eventually” for autoplay means: once Wi-Fi is connected; exact timing is network-dependent.
+
 ### FR-11 Background station list update (GitHub)
+* Device shall support downloading an updated station list from a remote URL and storing it as `stations.json` in LittleFS.
+* The in-RAM station list for the current session shall **not** change; updates are applied **on next reboot**.
 
-* After Wi-Fi is connected and playback is stable, start a background updater task.
-* Definition: playback is stable if player state is `Playing` continuously for 10 seconds.
-* Updater checks a remote manifest first (cheap download):
+Start condition:
+* Updater starts only when:
+  * Wi-Fi is `Connected`, and
+  * playback is **stable** (player state is `Playing` continuously for 10 seconds).
 
-  * `stations.manifest.json` contains `{ "version": <int>, "sha256": "<hex>", "size": <int> }`
-* If manifest indicates change, download `stations.json` to a temp file, validate it, then atomically replace local file.
-* Do not apply the new list immediately. UI shows:
-
-  * “Station list updated. Reboot to apply.”
+Update mechanism:
+* Updater shall first fetch `stations.manifest.json` (small file) containing:
+  * `{ "version": <int>, "sha256": "<hex>", "size": <int> }`
+* If manifest indicates change vs the last applied manifest, download `stations.json` to a temporary file.
+* Validate the downloaded JSON (same rules as FR-09).
+* If valid, replace local `stations.json` atomically (temp → rename).
+* Notify UI: “Station list updated. Reboot to apply.”
 
 Retry/backoff:
+* On network/HTTP failure, retry with exponential backoff:
+  * 60s → 2m → 4m → 8m → 16m → 30m (cap).
+* After a successful “no change” check or a successful update, reset backoff to 60s.
 
-* On failure, retry with exponential backoff: 60s → 2m → 4m → 8m → 16m → 30m (cap).
-* After success, reset backoff.
+Invalid remote list
+* If downloaded `stations.json` is invalid, keep existing local file unchanged and continue retries with the defined backoff.
+* If only invalid results occur for **30 minutes total**, then:
+  * show **one** UI message: “Remote list invalid (paused)”
+  * stop updater until reboot.
 
-Validation:
+No update available
+* If no updates are found for **30 minutes total**, then:
+  * show **one** UI message: “List up-to-date (paused)”
+  * stop updater until reboot.
 
-* JSON parse ok
-* array size 1..10
-* each entry has non-empty `id`, `name`, `url`
-* url must start with `http://` or `https://`
+Update success
+* If an update is successfully downloaded + validated + stored, then:
+  * show **one** UI message: “Station list updated. Reboot to apply.”
+  * stop updater until reboot.
 
-Invalid remote behavior:
+Acceptance:
+* Updater starts only when Wi-Fi is `Connected` and playback is stable (`Playing` for 10s).
+* If manifest is unchanged, `stations.json` is not downloaded.
+* If manifest changed and downloaded JSON is valid, local `stations.json` is replaced atomically and UI shows once: “Station list updated. Reboot to apply.”
+* If updater runs for 30 minutes without a successful update:
+  * invalid JSON only → show once: “Remote list invalid (paused)”
+  * no updates found → show once: “List up-to-date (paused)”
+* Retry/backoff follows 60s → 2m → 4m → 8m → 16m → 30m (cap).
+* Current session station list does not change until reboot.
 
-* Keep old local file.
-* Show short UI message: “Remote list invalid” (rate-limited; not spamming).
-* If 30 minutes pass with only invalid results: show “Remote list invalid (paused)” and stop updater until reboot.
-
-No-update behavior:
-
-* If no updates found for 30 minutes: show “List up-to-date” once (optional) and continue checking at low frequency OR pause (v0.1 decision: pause to save resources).
-
-(Implementation note: optional optimization later via ETag/If-Modified-Since.)
+Notes:
+* Manifest comparison can be by `version` (primary) and/or `sha256` (integrity).
+* HTTP implementation uses ESP-IDF `esp_http_client` (not part of ADF pipeline).
+* URLs are hosted on GitHub (raw) or any static host; exact URL is configuration.
 
 ### FR-12 Logging (local)
+* Device shall output logs to serial console (`idf.py monitor`) for debugging.
+* Log level shall be configurable at build-time (default: INFO).
+* Logs shall include key events: boot, Wi-Fi connect/disconnect, play/stop, and station list update result.
 
-* Log major events: boot, wifi connect/disconnect, play/stop, station change, updater status.
-* Log should be minimal and useful for debugging.
+Acceptance:
+* Serial logs contain boot message, Wi-Fi state changes, play/stop actions, and updater final outcome.
+* Default build logs at INFO level; a debug build can enable more verbose logs.
+* On failures (invalid station list, playback error), an ERROR log entry is produced.
 
 ## 4. Non-Functional Requirements (NFR)
 
