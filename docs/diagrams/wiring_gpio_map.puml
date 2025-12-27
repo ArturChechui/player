@@ -14,19 +14,16 @@ component "PSU" as PSU #DDDDDD {
   [GND] as R5_GND
 }
 
-cloud {
-    rectangle "470µF" as C470L
-    rectangle "0.1µF" as C01L
+together {
+    component "Decoupling\n470µF electrolytic || 0.1µF ceramic" as DEC_L
+    component "Decoupling\n470µF electrolytic || 0.1µF ceramic" as DEC_R
 }
-cloud {
-    rectangle "470µF" as C470R
-    rectangle "0.1µF" as C01R
-}
+
 rectangle "470K Ohms" as 470K
 
 component "ESP32-S3 SuperMini" as ESP #DDDDDD {
     [5V IN (USB-C)] as ESP_5V
-    [3V OUT] as ESP_33
+    [3V3 OUT] as ESP_33
     [GND] as ESP_GND
 
     [GP1  (I2C_SCL)] as GP1
@@ -112,25 +109,24 @@ ESP_GND -up[#Grey]-> OLED_GND
 ESP_33 -up[#Red]-> AHT_VDD
 ESP_GND -up[#Grey]-> AHT_GND
 
-R5 -[#Red,thickness=3]-> C470L
-C470L -[#Red,thickness=3]-> C01L
-C01L -[#Red,thickness=3]-> AL_VIN
-ESP_GND -[#Grey]-> AL_GND
-R5 -[#Red,thickness=3]-> C470R
-C470R -[#Red,thickness=3]-> C01R
-C01R -[#Red,thickness=3]-> AR_VIN
-ESP_GND -[#Grey]-> AR_GND
+R5 -[#Red,thickness=3]-> DEC_L
+DEC_L -[#Red,thickness=3]-> AL_VIN
+ESP_GND -[#Grey]-> DEC_L
+DEC_L -[#Grey]-> AL_GND
+
+R5 -[#Red,thickness=3]-> DEC_R
+DEC_R -[#Red,thickness=3]-> AR_VIN
+ESP_GND -[#Grey]-> DEC_R
+DEC_R -[#Grey]-> AR_GND
 
 ESP_33 -[#Red]-> ENC_VCC
 ESP_GND -[#Grey]-> ENC_GND
 
-' --- I2C BUS (shared) ---
 GP1 -up[#Green]-> OLED_SCL
 GP2 -up[#Brown]-> OLED_SDA
 GP1 -up[#Green]-> AHT_SCL
 GP2 -up[#Brown]-> AHT_SDA
 
-' --- I2S BUS (shared) ---
 GP13 -[#Teal]-> AL_LRC
 GP12 -[#Blue]-> AL_BCLK
 GP11 -[#Purple]-> AL_DIN
@@ -138,21 +134,17 @@ GP13 -[#Teal]-> AR_LRC
 GP12 -[#Blue]-> AR_BCLK
 GP11 -[#Purple]-> AR_DIN
 
-' --- AMP MODE PINS ---
 ESP_33 -[#Red]-> AL_SD
 ESP_33 -[#Red]-> 470K
 470K -[#Red]-> AR_SD
 
-' --- SPEAKERS ---
 AMP_L --> SPK_L
 AMP_R --> SPK_R
 
-' --- ENCODER SIGNALS ---
 ENC_S1 <-- GP3
 ENC_S2 <-- GP4
 ENC_KEY <-- GP5
 
-' --- BUTTONS ---
 BUP <-- GP6
 BUP <-[#Grey]- ESP_GND 
 BDN <-- GP7
