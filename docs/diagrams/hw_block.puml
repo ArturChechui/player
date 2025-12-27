@@ -1,0 +1,48 @@
+@startuml hw_block.puml
+title ESP32 Internet Radio - Hardware Block Diagram
+
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam linetype ortho
+skinparam componentStyle rectangle
+skinparam nodesep 30
+skinparam ranksep 90
+
+component "5V Supply" as PWR #EEEEEE
+
+package "Inputs" as INP {
+  component "Buttons x4\n(Up / Down / Play / Stop)" as BTN #F5F5F5
+  component "Rotary Encoder EC11" as ENC #F5F5F5
+}
+
+component "ESP32-S3 SuperMini" as ESP #DDDDDD
+
+package "I2C Peripherals (3.3V)" as I2C {
+  component "OLED SSD1306" as OLED #F5F5F5
+  component "AHT20" as AHT #F5F5F5
+}
+
+package "Audio" as AUD {
+  component "MAX98357A x2\nI2S DAC + Class-D Amp" as AMP2 #F5F5F5
+  component "Speaker L\n8Ohms 3W" as SPK_L #FFFFFF
+  component "Speaker R\n8Ohms 3W" as SPK_R #FFFFFF
+}
+
+INP -right[hidden]-> ESP
+ESP -[hidden]-> I2C
+ESP -right[hidden]-> AUD
+PWR -down[hidden]-> ESP
+
+PWR --> ESP : 5V + GND
+
+BTN --> ESP : GPIO inputs
+ENC --> ESP : GPIO inputs
+
+ESP --> OLED : I2C (SDA/SCL)\n+3.3V + GND
+ESP --> AHT  : I2C (SDA/SCL)\n+3.3V + GND
+
+ESP --> AMP2 : I2S (BCLK/LRCLK/DIN)\n+5V + GND
+AMP2 --> SPK_L : speaker out
+AMP2 --> SPK_R : speaker out
+
+@enduml
