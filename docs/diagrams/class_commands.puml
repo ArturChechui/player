@@ -1,0 +1,108 @@
+@startuml class_commands.puml
+title ESP32 Internet Radio - Class Diagram (Commands)
+
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+hide empty members
+hide empty methods
+hide empty fields
+skinparam nodesep 5
+skinparam ranksep 12
+
+class StationRepository {
+    -files: IFileStore
+    -json: IJsonCodec
+    +Load(): StationsModel
+    +SaveAtomic(m: StationsModel): bool
+}
+
+interface ISettingsStore {
+    +GetString(key: string): string
+    +SetString(key: string, v: string): bool
+    +GetU32(key: string): uint32
+    +SetU32(key: string, v: uint32): bool
+}
+
+interface IPlayer {
+    +Play(url: string): void
+    +Stop(): void
+    +IsStable(): bool
+}
+  
+interface ILogger {
+    +D(tag: string, msg: string): void
+    +I(tag: string, msg: string): void
+    +W(tag: string, msg: string): void
+    +E(tag: string, msg: string): void
+}
+
+interface IAppCommand {
+  +Start(): void
+  +Handle(e: AppEvent): void
+  +IsDone(): bool
+  +Name(): string
+}
+
+class RestoreLastModeCommand
+class PlayStationCommand
+class StopCommand
+
+interface IUpdaterCommand {
+    +Run(): UpdateResult
+    +Name(): string
+}
+
+together {
+    class UpdateStationsCommand
+
+    interface IEventSink {
+        +Post(e: AppEvent): void
+    }
+
+    interface IFileStore {
+        +ReadText(path: string): string
+        +WriteTextAtomic(path: string, tmpPath: string, data: string): bool
+        +Rename(from: string, to: string): bool
+        +Remove(path: string): bool
+        +Exists(path: string): bool
+    }
+
+    interface IHttpClient {
+        +Get(url: string, etag: string = ""): HttpResponse
+        +Download(url: string): ByteArray
+    }
+
+    interface IJsonCodec {
+        +ParseStations(json: string): StationsModel
+        +SerializeStations(model: StationsModel): string
+        +ValidateStations(json: string): bool
+    }
+}
+
+RestoreLastModeCommand .up.|> IAppCommand
+PlayStationCommand .up.|> IAppCommand
+StopCommand .up.|> IAppCommand
+UpdateStationsCommand .up.|> IUpdaterCommand
+
+UpdateStationsCommand --> IHttpClient
+UpdateStationsCommand --> IJsonCodec
+UpdateStationsCommand -left-> IFileStore
+UpdateStationsCommand --> ILogger
+UpdateStationsCommand -up-> IEventSink
+
+PlayStationCommand --> IPlayer
+PlayStationCommand --> StationRepository
+PlayStationCommand --> ILogger
+
+RestoreLastModeCommand --> ISettingsStore
+RestoreLastModeCommand --> StationRepository
+RestoreLastModeCommand --> IPlayer
+RestoreLastModeCommand --> ILogger
+
+StopCommand --> IPlayer
+StopCommand --> ILogger
+
+@enduml

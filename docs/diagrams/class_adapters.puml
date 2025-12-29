@@ -1,0 +1,114 @@
+@startuml class_adapters.puml
+title ESP32 Internet Radio - Class Diagram (Adapters)
+
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+hide empty members
+hide empty methods
+hide empty fields
+skinparam nodesep 20
+skinparam ranksep 30
+
+interface ILogger {
+    +D(tag: string, msg: string): void
+    +I(tag: string, msg: string): void
+    +W(tag: string, msg: string): void
+    +E(tag: string, msg: string): void
+}
+
+interface ISettingsStore {
+    +GetString(key: string): string
+    +SetString(key: string, v: string): bool
+    +GetU32(key: string): uint32
+    +SetU32(key: string, v: uint32): bool
+}
+
+interface IFileStore {
+    +ReadText(path: string): string
+    +WriteTextAtomic(path: string, tmpPath: string, data: string): bool
+    +Rename(from: string, to: string): bool
+    +Remove(path: string): bool
+    +Exists(path: string): bool
+}
+
+interface IHttpClient {
+    +Get(url: string, etag: string = ""): HttpResponse
+    +Download(url: string): ByteArray
+}
+
+interface IJsonCodec {
+    +ParseStations(json: string): StationsModel
+    +SerializeStations(model: StationsModel): string
+    +ValidateStations(json: string): bool
+}
+
+interface IDisplay {
+    +ShowBoot(): void
+    +ShowStatus(s: UiStatus): void
+    +ShowStations(m: StationsModel, selected: int): void
+}
+
+interface IInputDriver {
+    +Init(): void
+    +PollOrISR(): void
+}
+
+interface IPlayer {
+    +Play(url: string): void
+    +Stop(): void
+    +IsStable(): bool
+}
+
+interface IWifi {
+    +Connect(): void
+    +Disconnect(): void
+    +IsConnected(): bool
+}
+
+interface ISensors {
+    +Start(): void
+    +GetTemperatureC(): float
+}
+
+class EspLogLogger
+class NvsSettingsStore
+class LittleFsFileStore
+class EspIdfHttpClient
+class CJsonCodec
+class OledSsd1306Display
+class GpioInputDriver
+class EspAdfPlayer
+class EspIdfWifi
+class Aht20Sensors
+
+package "External" {
+  class "ESP-IDF" as ESPIDF
+  class "ESP-ADF" as ESPADF
+}
+
+EspLogLogger .down.|> ILogger
+NvsSettingsStore .up.|> ISettingsStore
+LittleFsFileStore .up.|> IFileStore
+EspIdfHttpClient .up.|> IHttpClient
+CJsonCodec .down.|> IJsonCodec
+OledSsd1306Display .up.|> IDisplay
+GpioInputDriver .down.|> IInputDriver
+EspAdfPlayer .down.|> IPlayer
+EspIdfWifi .down.|> IWifi
+Aht20Sensors .down.|> ISensors
+
+CJsonCodec -up-> ESPIDF
+EspIdfWifi -up-> ESPIDF
+NvsSettingsStore -down-> ESPIDF
+LittleFsFileStore -down-> ESPIDF
+EspIdfHttpClient -down-> ESPIDF
+GpioInputDriver -up-> ESPIDF
+OledSsd1306Display -down-> ESPIDF
+EspLogLogger -up-> ESPIDF
+Aht20Sensors -up-> ESPIDF
+EspAdfPlayer -up-> ESPADF
+
+@enduml
