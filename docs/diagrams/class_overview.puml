@@ -1,0 +1,36 @@
+@startuml class_overview.puml
+title ESP32 Internet Radio - Class Overview Diagram
+
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam linetype ortho
+skinparam roundcorner 12
+skinparam nodesep 95
+skinparam ranksep 95
+
+left to right direction
+
+rectangle "Core" as Core #E8F4FF
+rectangle "Services" as Services #F2FFF2
+rectangle "Commands" as Commands #FFF7E6
+rectangle "Adapters" as Adapters #F7F7F7
+rectangle "External / Platform" as External #FFFFFF
+
+Core --> Services : orchestrates
+Core --> Commands : starts/owns
+Commands -right-> Services : uses
+Commands --> Adapters : calls
+Services --> Adapters : calls
+Adapters --> External : wraps
+
+Core ..> External : uses tasks/queues/timers
+
+Legend left
+See detailed diagrams:
+- class_core.puml
+- class_services.puml
+- class_commands.puml
+- class_adapters.puml
+end legend
+
+@enduml

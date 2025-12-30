@@ -1,0 +1,147 @@
+@startuml class_core.puml
+title ESP32 Internet Radio - Class Diagram (Core)
+
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+hide empty members
+hide empty methods
+hide empty fields
+skinparam nodesep 25
+skinparam ranksep 30
+
+class AppContext {
+    +controllerTask: ControllerTask
+    +updaterTask: UpdaterTask
+    +uiTask: UiTask
+    +uiService: UiService
+    +inputService: InputService
+    +playerService: PlayerService
+    +wifiService: WifiService
+    +sensorService: SensorService
+    +stationRepository: StationRepository
+    +espLogLogger: EspLogLogger
+    +nvsSettingsStore: NvsSettingsStore
+    +littleFsFileStore: LittleFsFileStore
+    +espIdfHttpClient: EspIdfHttpClient
+    +cJsonCodec: CJsonCodec
+    +oledSsd1306Display: OledSsd1306Display
+    +gpioInputDriver: GpioInputDriver
+    +espAdfPlayer: EspAdfPlayer
+    +espIdfWifi: EspIdfWifi
+    +aht20Sensors: Aht20Sensors
+}
+
+class AppController {
+    -ctx: AppContext
+    -activeCmd: IAppCommand
+    -model: AppModel
+    +OnEvent(e: AppEvent): void
+    -StartCommand(cmd: IAppCommand): void
+    -ForwardToActiveCmd(e: AppEvent): void
+}
+
+class ControllerTask {
+    -queue: QueueHandle_t
+    -controller: AppController
+    -logger: ILogger
+    +Start(): void
+    +Post(e: AppEvent): void
+    -RunLoop(): void
+}
+
+class UpdaterTask {
+    -queue: QueueHandle_t 
+    -ctx: AppContext
+    +Start(): void
+    +Post(e: UpdaterEvent): void
+    -RunLoop(): void
+}
+
+class UiTask {
+    -queue: QueueHandle_t 
+    -uiService: UiService
+    -logger: ILogger
+    +Start(): void
+    +Post(e: UiEvent): void
+    -RunLoop(): void
+}
+
+interface IEventSink {
+    +Post(e: AppEvent): void
+}
+
+interface IUpdaterSink {
+    +Post(e: UpdaterEvent): void
+}
+
+interface IUiSink {
+    +Post(e: UiEvent): void
+}
+
+interface IAppCommand
+interface IUpdaterCommand
+interface ILogger
+
+class UiService
+class InputService
+class PlayerService
+class WifiService
+class SensorService
+class StationRepository
+
+class EspLogLogger
+class NvsSettingsStore
+class LittleFsFileStore
+class EspIdfHttpClient
+class CJsonCodec
+class OledSsd1306Display
+class GpioInputDriver
+class EspAdfPlayer
+class EspIdfWifi
+class Aht20Sensors
+
+AppContext *-up- ControllerTask
+AppContext *-up- UpdaterTask
+AppContext *-up- UiTask
+
+AppContext *-- UiService
+AppContext *-- InputService
+AppContext *-- PlayerService
+AppContext *-- WifiService
+AppContext *-- SensorService
+AppContext *-- StationRepository
+
+AppContext *-- EspLogLogger
+AppContext *-- NvsSettingsStore
+AppContext *-- LittleFsFileStore
+AppContext *-- EspIdfHttpClient
+AppContext *-- CJsonCodec
+AppContext *-- OledSsd1306Display
+AppContext *-- GpioInputDriver
+AppContext *-- EspAdfPlayer
+AppContext *-- EspIdfWifi
+AppContext *-- Aht20Sensors
+AppContext *-up- AppController
+
+ControllerTask .up.|> IEventSink
+ControllerTask -left-> AppController
+ControllerTask -up-> ILogger
+
+UpdaterTask ..|> IUpdaterSink
+UpdaterTask *-- IUpdaterCommand
+UpdaterTask --> AppContext
+
+UiTask ..|> IUiSink
+UiTask --> UiService
+UiTask -up-> ILogger
+
+AppController --> IUpdaterSink
+AppController --> IUiSink
+AppController *-- IAppCommand
+AppController --> AppContext
+AppController -up-> ILogger
+
+@enduml

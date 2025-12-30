@@ -19,6 +19,16 @@ class StationRepository {
     +SaveAtomic(m: StationsModel): bool
 }
 
+class PlayerService {
+    -player: IPlayer
+    -sink: IEventSink
+    -logger: ILogger
+    +Play(url: string): void
+    +Stop(): void
+    +OnAdfEvent(ev: AdfEvent): void
+    +IsStable(): bool
+}
+
 interface ISettingsStore {
     +GetString(key: string): string
     +SetString(key: string, v: string): bool
@@ -26,12 +36,6 @@ interface ISettingsStore {
     +SetU32(key: string, v: uint32): bool
 }
 
-interface IPlayer {
-    +Play(url: string): void
-    +Stop(): void
-    +IsStable(): bool
-}
-  
 interface ILogger {
     +D(tag: string, msg: string): void
     +I(tag: string, msg: string): void
@@ -93,16 +97,16 @@ UpdateStationsCommand -left-> IFileStore
 UpdateStationsCommand --> ILogger
 UpdateStationsCommand -up-> IEventSink
 
-PlayStationCommand --> IPlayer
+PlayStationCommand --> PlayerService
 PlayStationCommand --> StationRepository
 PlayStationCommand --> ILogger
 
 RestoreLastModeCommand --> ISettingsStore
 RestoreLastModeCommand --> StationRepository
-RestoreLastModeCommand --> IPlayer
+RestoreLastModeCommand --> PlayerService
 RestoreLastModeCommand --> ILogger
 
-StopCommand --> IPlayer
+StopCommand --> PlayerService
 StopCommand --> ILogger
 
 @enduml

@@ -1,0 +1,141 @@
+@startuml class_services.puml
+title ESP32 Internet Radio - Class Diagram (Services)
+
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+hide empty members
+hide empty methods
+hide empty fields
+skinparam nodesep 25
+skinparam ranksep 20
+
+together {
+    interface IEventSink {
+        +Post(e: AppEvent): void
+    }
+
+    interface ILogger {
+        +D(tag: string, msg: string): void
+        +I(tag: string, msg: string): void
+        +W(tag: string, msg: string): void
+        +E(tag: string, msg: string): void
+    }
+
+    interface IFileStore {
+        +ReadText(path: string): string
+        +WriteTextAtomic(path: string, tmpPath: string, data: string): bool
+        +Rename(from: string, to: string): bool
+        +Remove(path: string): bool
+        +Exists(path: string): bool
+    }
+
+    interface IJsonCodec {
+        +ParseStations(json: string): StationsModel
+        +SerializeStations(model: StationsModel): string
+        +ValidateStations(json: string): bool
+    }
+
+    interface IDisplay {
+        +ShowBoot(): void
+        +ShowStatus(s: UiStatus): void
+        +ShowStations(m: StationsModel, selected: int): void
+    }
+
+    interface IInputDriver {
+        +Init(): void
+        +PollOrISR(): void
+    }
+
+    interface IPlayer {
+        +Play(url: string): void
+        +Stop(): void
+        +IsStable(): bool
+    }
+
+    interface IWifi {
+        +Connect(): void
+        +Disconnect(): void
+        +IsConnected(): bool
+    }
+
+    interface ISensors {
+        +Start(): void
+        +GetTemperatureC(): float
+    }
+}
+
+class UiService {
+    -display: IDisplay
+    -logger: ILogger
+    +Render(model: AppModel): void
+}
+
+class InputService {
+    -driver: IInputDriver
+    -sink: IEventSink
+    -logger: ILogger
+    +Init(): void
+    +OnButtonPlay(): void
+    +OnButtonStop(): void
+    +OnEncoder(delta: int): void
+}
+
+class PlayerService {
+    -player: IPlayer
+    -sink: IEventSink
+    -logger: ILogger
+    +Play(url: string): void
+    +Stop(): void
+    +OnAdfEvent(ev: AdfEvent): void
+    +IsStable(): bool
+}
+
+class WifiService {
+    -wifi: IWifi
+    -sink: IEventSink
+    -logger: ILogger
+    +Connect(): void
+    +OnWifiEvent(ev: WifiEvent): void
+    +IsConnected(): bool
+}
+
+class SensorService {
+    -sensors: ISensors
+    -sink: IEventSink
+    -logger: ILogger
+    +Start(): void
+    +OnTimerTick(): void
+}
+
+class StationRepository {
+    -files: IFileStore
+    -json: IJsonCodec
+    -logger: ILogger
+    +Load(): StationsModel
+    +SaveAtomic(m: StationsModel): bool
+}
+
+UiService --> IDisplay
+InputService --> IInputDriver
+PlayerService --> IPlayer
+WifiService --> IWifi
+SensorService --> ISensors
+StationRepository --> IFileStore
+StationRepository --> IJsonCodec
+
+UiService -up-> ILogger
+InputService --> ILogger
+PlayerService --> ILogger
+WifiService -up-> ILogger
+SensorService --> ILogger
+StationRepository --> ILogger
+
+InputService -up-> IEventSink
+PlayerService -up-> IEventSink
+WifiService -up-> IEventSink
+SensorService -up-> IEventSink
+
+@enduml
