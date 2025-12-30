@@ -1,0 +1,13 @@
+idf_component_register(
+  SRCS
+  "src/EspAdfPlayer.cpp"
+  INCLUDE_DIRS
+  "include"
+  REQUIRES
+  adapters
+  esp_wifi
+  nvs_flash
+  esp_http_client
+  driver
+  nvs_flash
+  littlefs)

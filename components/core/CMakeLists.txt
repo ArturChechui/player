@@ -1,0 +1,14 @@
+idf_component_register(
+  SRCS
+  "src/AppController.cpp"
+  "src/ControllerTask.cpp"
+  "src/UpdaterTask.cpp"
+  "src/UiTask.cpp"
+  INCLUDE_DIRS
+  "include"
+  REQUIRES
+  freertos
+  commands
+  services
+  adapters
+  esp_timer)

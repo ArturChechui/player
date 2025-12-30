@@ -1,3 +1,7 @@
+# Configuration files for ESP-IDF projects
+sdkconfig
+sdkconfig.old
+
 # Prerequisites
 *.d
 
