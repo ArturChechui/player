@@ -1,2 +1,8 @@
-idf_component_register(SRCS "AppContext.cpp" "app_main.cpp" INCLUDE_DIRS ".")
-# REQUIRES core services commands adapters
+idf_component_register(
+  SRCS
+  "app_main.cpp"
+  INCLUDE_DIRS
+  "."
+  REQUIRES
+  board_config
+  adapters)

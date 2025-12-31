@@ -1,12 +1,1 @@
-idf_component_register(
-  SRCS
-  "src/PlayCommand.cpp"
-  "src/RestoreLastModeCommand.cpp"
-  "src/StopCommand.cpp"
-  "src/UpdateStationsCommand.cpp"
-  INCLUDE_DIRS
-  "include"
-  REQUIRES
-  adapters
-  core
-  services)
+

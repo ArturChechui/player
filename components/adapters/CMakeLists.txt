@@ -1,13 +1,10 @@
 idf_component_register(
   SRCS
-  "src/EspAdfPlayer.cpp"
+  "src/OledSsd1306Display.cpp"
   INCLUDE_DIRS
   "include"
   REQUIRES
-  adapters
-  esp_wifi
-  nvs_flash
-  esp_http_client
+  board_config
   driver
-  nvs_flash
-  littlefs)
+  freertos
+  log)
