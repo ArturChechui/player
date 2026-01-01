@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-namespace display {
+namespace adapters {
 
 enum class UiStatusKind : uint8_t {
   Booting,
@@ -26,4 +26,4 @@ struct StationsModel {
   std::vector<std::string> stations;
 };
 
-} // namespace display
+} // namespace adapters
