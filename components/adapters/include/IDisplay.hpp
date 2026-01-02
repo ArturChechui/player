@@ -1,6 +1,8 @@
 #pragma once
 
-#include "UiTypes.hpp"
+// TODO: forward declarations
+#include "types.hpp"
+#include <vector>
 
 namespace adapters {
 
@@ -9,8 +11,9 @@ public:
   virtual ~IDisplay() = default;
 
   virtual void showBoot() = 0;
-  virtual void showStatus(const UiStatus &s) = 0;
-  virtual void showStations(const StationsModel &m, int selected) = 0;
+  virtual void showStatus(const core::UiStatus &s) = 0;
+  virtual void showStations(const std::vector<core::StationData> &stations,
+                            int selected) = 0;
 };
 
 } // namespace adapters

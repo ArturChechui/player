@@ -11,19 +11,21 @@
 #include "StationRepository.hpp"
 #include "UiService.hpp"
 
+#include <memory>
+
 namespace core {
 
 class AppContext {
 public:
-  explicit AppContext();
+  AppContext() = default;
   bool init();
 
 public:
-  AppController mAppController;
-  services::StationRepository mStationRepository;
-  services::UiService mUiService;
-  adapters::OledSsd1306Display mOledDisplay;
-  UiTask mUiTask;
+  std::unique_ptr<AppController> mAppController;
+  std::unique_ptr<services::StationRepository> mStationRepository;
+  std::unique_ptr<services::UiService> mUiService;
+  std::unique_ptr<adapters::OledSsd1306Display> mOledDisplay;
+  std::unique_ptr<UiTask> mUiTask;
 };
 
 } // namespace core

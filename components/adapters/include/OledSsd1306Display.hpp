@@ -16,14 +16,15 @@ public:
 
   // IDisplay
   void showBoot() override;
-  void showStatus(const UiStatus &s) override;
-  void showStations(const StationsModel &m, int selected) override;
+  void showStatus(const core::UiStatus &s) override;
+  void showStations(const std::vector<core::StationData> &stations,
+                    int selected) override;
 
 private:
   esp_err_t initI2c();
   esp_err_t ping() const;
 
-  bool ready_{false};
+  bool mReady;
 };
 
 } // namespace adapters

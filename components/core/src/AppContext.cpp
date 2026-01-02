@@ -1,18 +1,23 @@
 #include "AppContext.hpp"
 
 namespace core {
-AppContext::AppContext() {}
 
 bool AppContext::init() {
-  mAppController = AppController(*this);
-  mUiService = services::UiService(mOledDisplay);
-  mOledDisplay = adapters::OledSsd1306Display();
-  mUiTask = UiTask(mUiService);
+  // TODO: move to constructor initialization list?
+  mAppController = std::make_unique<AppController>(*this);
+  mOledDisplay = std::make_unique<adapters::OledSsd1306Display>();
+  mStationRepository = std::make_unique<services::StationRepository>();
+  mUiService =
+      std::make_unique<services::UiService>(*mOledDisplay, *mStationRepository);
+  mUiTask = std::make_unique<UiTask>(*mUiService);
 
-  mOledDisplay.Init();
-  mUiService.init();
-  mStationRepository.init();
-  mUiTask.init();
+  mOledDisplay->init();
+  mUiService->init();
+  mStationRepository->init();
+  mUiTask->init();
+
+  // send the event
+  mAppController->init();
 
   return true;
 }

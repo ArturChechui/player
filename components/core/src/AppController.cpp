@@ -1,14 +1,17 @@
 #include "AppController.hpp"
+#include "AppContext.hpp"
 
 namespace core {
 
-AppController::AppController(const AppContext &ctx) : mAppContext(ctx) {}
+AppController::AppController(AppContext &ctx) : mAppContext(ctx) {}
 
 bool AppController::init() {
 
-  mAppModel = mAppContext.mStationRepository.load();
-  UiEvent event{mAppModel, UiEventType::Render};
-  mAppContext.mUiTask.post(event);
+  UiEvent event;
+  event.type = UiEvent::Type::RENDER_STATIONS;
+  event.selectedIndex = 0;
+
+  mAppContext.mUiTask->post(event);
 
   return true;
 }

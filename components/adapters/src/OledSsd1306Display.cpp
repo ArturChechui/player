@@ -1,31 +1,32 @@
 #include "OledSsd1306Display.hpp"
 
 #include "BoardConfig.hpp"
+#include "esp_check.h"
 #include "esp_log.h"
 
 namespace adapters {
 
 static const char *TAG = "OledSsd1306Display";
 
-OledSsd1306Display::OledSsd1306Display() {
+OledSsd1306Display::OledSsd1306Display() : mReady(false) {
   ESP_LOGI(TAG, "Crating OledSsd1306Display");
 }
 
 esp_err_t OledSsd1306Display::init() {
-  const esp_err_t e1 = initI2c_();
+  const esp_err_t e1 = initI2c();
   if (e1 != ESP_OK) {
     ESP_LOGE(TAG, "I2C init failed: %s", esp_err_to_name(e1));
     return e1;
   }
 
-  const esp_err_t e2 = ping_();
+  const esp_err_t e2 = ping();
   if (e2 != ESP_OK) {
     ESP_LOGE(TAG, "OLED not responding on I2C addr 0x%02X: %s",
              board::OLED_I2C_ADDR, esp_err_to_name(e2));
     return e2;
   }
 
-  ready_ = true;
+  mReady = true;
 
   // Step 2 (later): send SSD1306 init command sequence and clear screen.
   ESP_LOGI(TAG, "OLED I2C OK (addr=0x%02X). Ready.", board::OLED_I2C_ADDR);
@@ -33,7 +34,7 @@ esp_err_t OledSsd1306Display::init() {
 }
 
 void OledSsd1306Display::showBoot() {
-  if (!ready_) {
+  if (!mReady) {
     ESP_LOGW(TAG, "ShowBoot called before Init()");
     return;
   }
@@ -41,8 +42,8 @@ void OledSsd1306Display::showBoot() {
   // Step 2 (later): render Booting… to OLED.
 }
 
-void OledSsd1306Display::showStatus(const UiStatus &s) {
-  if (!ready_) {
+void OledSsd1306Display::showStatus(const core::UiStatus &s) {
+  if (!mReady) {
     ESP_LOGW(TAG, "ShowStatus called before Init()");
     return;
   }
@@ -51,14 +52,15 @@ void OledSsd1306Display::showStatus(const UiStatus &s) {
   // Step 2 (later): render status lines.
 }
 
-void OledSsd1306Display::showStations(const StationsModel &m, int selected) {
-  if (!ready_) {
+void OledSsd1306Display::showStations(
+    const std::vector<core::StationData> &stations, int selected) {
+  if (!mReady) {
     ESP_LOGW(TAG, "ShowStations called before Init()");
     return;
   }
 
   ESP_LOGI(TAG, "[OLED] Stations (count=%u) selected=%d",
-           static_cast<unsigned>(m.stations.size()), selected);
+           static_cast<unsigned>(stations.size()), selected);
 
   // Step 2 (later): render list + highlight selected.
 }
@@ -71,6 +73,7 @@ esp_err_t OledSsd1306Display::initI2c() {
   conf.sda_pullup_en = GPIO_PULLUP_ENABLE;
   conf.scl_pullup_en = GPIO_PULLUP_ENABLE;
   conf.master.clk_speed = board::I2C_FREQ_HZ;
+
   ESP_RETURN_ON_ERROR(
       i2c_param_config(static_cast<i2c_port_t>(board::I2C_PORT), &conf), TAG,
       "i2c_param_config failed");

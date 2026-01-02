@@ -1,18 +1,21 @@
 #pragma once
 
-#include "adapters/include/IDisplay.hpp"
-#include "core/include/types.hpp"
+#include "IDisplay.hpp"
+#include "StationRepository.hpp"
+#include "types.hpp"
 
 namespace services {
 
 class UiService {
 public:
-  explicit UiService(const adapters::IDisplay &display);
+  explicit UiService(adapters::IDisplay &display,
+                     StationRepository &stationRepo);
   bool init();
-  void render(const core::AppModel &model);
+  void onEvent(const core::UiEvent &e);
 
 private:
-  const adapters::IDisplay &mDisplay;
+  adapters::IDisplay &mDisplay;
+  StationRepository &mStationRepo;
 };
 
 } // namespace services
