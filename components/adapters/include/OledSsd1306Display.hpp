@@ -1,17 +1,14 @@
 #pragma once
 
 #include "IDisplay.hpp"
-
-#include <cstdint>
-
-#include "driver/i2c.h"
-#include "esp_err.h"
+#include "Ssd1306Controller.hpp"
+#include <memory>
 
 namespace adapters {
 
 class OledSsd1306Display final : public IDisplay {
 public:
-  explicit OledSsd1306Display();
+  OledSsd1306Display();
   esp_err_t init();
 
   // IDisplay
@@ -21,9 +18,13 @@ public:
                     int selected) override;
 
 private:
-  esp_err_t initI2c();
-  esp_err_t ping() const;
+  void clear();
+  void flush();
+  void drawChar(uint8_t x, uint8_t y, char c, bool inverse = false);
+  void drawText(uint8_t x, uint8_t y, const char *txt, bool inverse = false);
+  void drawLine(uint8_t line, const char *txt, bool inverse = false);
 
+  std::unique_ptr<Ssd1306Controller> mCtrl;
   bool mReady;
 };
 
