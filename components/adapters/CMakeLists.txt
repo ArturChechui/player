@@ -1,0 +1,11 @@
+idf_component_register(
+  SRCS
+  "src/OledSsd1306Display.cpp"
+  INCLUDE_DIRS
+  "include"
+  REQUIRES
+  board_config
+  driver
+  freertos
+  core
+  log)
