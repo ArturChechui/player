@@ -1,0 +1,14 @@
+--std=c++17
+--language=c++
+--enable=warning,style,performance,portability
+--inline-suppr
+--template=gcc
+--quiet
+
+--suppress=missingIncludeSystem
+--suppress=unusedFunction
+
+--project=build/compile_commands.json
+
+main
+components

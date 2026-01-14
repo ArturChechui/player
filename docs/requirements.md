@@ -34,27 +34,24 @@ An ESP32-S3 based internet radio device that:
 - Temp/Hum: AHT20 (I2C)
 - Audio: 2x MAX98357 (I2S DAC/amp) + 2x 8Ohms 3W speakers
 - Inputs:
-  - Buttons: Up, Down, Play, Stop
+  - Buttons: Up, Down, Play/Stop
   - Rotary encoder EC11 for Volume
 
 ## 3. Functional Requirements (FR)
 
-### FR-01 Station list & selection
+### FR-01 Station list display
 
 - The device shall display a list of stations.
-- `Up` shall move selection up.
-- `Down` shall move selection down.
-- Selection shall NOT start playback.
+- Up to 6 stations shall be visible at once.
+- Station names shall be truncated if they exceed display width.
 
 Acceptance:
 
-- Pressing Up/Down changes only selection within 50 ms perceived UI update time.
+- Device displays stations on screen.
 
 ### FR-02 Play
 
-- `Play` shall start playback of the currently selected station.
-- If the selected station is already active, Play is a no-op.
-- UI shall show status: `Stopped`, `Buffering`, `Playing`, `Error`.
+- `Play/Stop` button shall start playback of the currently selected station if stopped.
 
 Acceptance:
 
@@ -62,21 +59,23 @@ Acceptance:
 
 ### FR-03 Stop
 
-- `Stop` shall stop playback.
-- The UI shall update status to `Stopped`.
+- Playback stops when `Play/Stop` is pressed during active playback.
 
 Acceptance:
 
 - Stop transitions to `Stopped` state and audio output ceases.
 
-### FR-04 Active station indicator
+### FR-04 Active station indicator & navigation
 
-- The list shall mark the active station (e.g., `•` dot on the left).
-- Active station and selection may differ (selection is navigated independently).
+- The selected station shall be marked with a play icon if playing, and a stop icon if stopped.
+- `Up` shall switch to the previous station and start playback.
+- `Down` shall switch to the next station and start playback.
+- Selection wraps at list boundaries.
 
 Acceptance:
 
-- When a station is playing, it is marked active even if user scrolls selection elsewhere.
+- Pressing Up/Down switches station and updates the marker within 50 ms.
+- UI shows correct playback status icon for the active/selected station.
 
 ### FR-05 Volume control (rotary encoder)
 

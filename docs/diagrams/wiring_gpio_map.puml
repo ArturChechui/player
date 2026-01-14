@@ -35,8 +35,7 @@ component "ESP32-S3 SuperMini" as ESP #DDDDDD {
 
     [GP6  (BTN_UP)]   as GP6
     [GP7  (BTN_DOWN)] as GP7
-    [GP8  (BTN_PLAY)] as GP8
-    [GP9  (BTN_STOP)] as GP9
+    [GP8  (BTN_PLAY_STOP)] as GP8
 
     [GP11 (I2S_DIN)]  as GP11
     [GP12 (I2S_BCLK)] as GP12
@@ -47,8 +46,7 @@ component "ESP32-S3 SuperMini" as ESP #DDDDDD {
 package "Inputs" as Inputs {
     component "Button UP" as BUP
     component "Button DOWN" as BDN
-    component "Button PLAY" as BPL
-    component "Button STOP" as BST
+    component "Button PLAY/STOP" as BPS
 
     component "Encoder EC11" as ENC {
         [GND] as ENC_GND
@@ -149,9 +147,7 @@ BUP <-- GP6
 BUP <-[#Grey]- ESP_GND 
 BDN <-- GP7
 BDN <-[#Grey]- ESP_GND 
-BPL <-- GP8
-BPL <-[#Grey]- ESP_GND 
-BST <-- GP9
-BST <-[#Grey]- ESP_GND 
+BPS <-- GP8
+BPS <-[#Grey]- ESP_GND 
 
 @enduml
