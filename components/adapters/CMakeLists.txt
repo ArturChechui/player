@@ -1,0 +1,10 @@
+idf_component_register(
+  SRCS
+  "src/OledSsd1306Display.cpp"
+  "src/EspI2cBus.cpp"
+  INCLUDE_DIRS
+  "include"
+  REQUIRES
+  common
+  driver
+  log)

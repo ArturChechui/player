@@ -1,0 +1,10 @@
+idf_component_register(
+  SRCS
+  "src/StationRepository.cpp"
+  "src/UiService.cpp"
+  INCLUDE_DIRS
+  "include"
+  REQUIRES
+  adapters
+  core
+  log)

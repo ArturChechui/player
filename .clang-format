@@ -1,0 +1,54 @@
+---
+Language: Cpp
+Standard: c++17
+BasedOnStyle: Google
+
+# Indentation
+IndentWidth: 4
+UseTab: Never
+TabWidth: 4
+ContinuationIndentWidth: 4
+
+# Line length
+ColumnLimit: 100
+
+# Braces
+BreakBeforeBraces: Attach
+BraceWrapping:
+  AfterClass: false
+  AfterControlStatement: false
+  AfterFunction: false
+  AfterNamespace: false
+  AfterStruct: false
+  AfterUnion: false
+  BeforeCatch: false
+  BeforeElse: false
+
+# Spaces
+SpaceAfterCStyleCast: false
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeCtorInitializerColon: true
+SpaceBeforeParens: ControlStatements
+SpaceInEmptyParentheses: false
+SpacesBeforeTrailingComments: 2
+SpacesInAngles: false
+SpacesInCStyleCastParentheses: false
+SpacesInContainerLiterals: false
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+
+# Pointers & references
+PointerAlignment: Left
+ReferenceAlignment: Pointer
+
+# Function formatting
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+
+# Includes
+SortIncludes: CaseInsensitive
+IncludeBlocks: Regroup
+
+# Comments
+ReflowComments: true

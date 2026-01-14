@@ -1,0 +1,14 @@
+idf_component_register(
+  SRCS
+  "src/AppController.cpp"
+  "src/UiTask.cpp"
+  "src/AppContext.cpp"
+  INCLUDE_DIRS
+  "include"
+  REQUIRES
+  common
+  adapters
+  services
+  driver
+  freertos
+  log)
