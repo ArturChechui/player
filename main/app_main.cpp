@@ -9,7 +9,7 @@
 static const char *TAG = "app_main";
 
 extern "C" void app_main(void) {
-    ESP_LOGI(TAG, "=== Player App Starting ===");
+    ESP_LOGI(TAG, "=== ESP Radio App Starting ===");
 
     core::AppContext appContext;
 
