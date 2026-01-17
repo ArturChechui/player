@@ -2,6 +2,7 @@ idf_component_register(
   SRCS
   "src/StationRepository.cpp"
   "src/UiService.cpp"
+  "src/PlayerService.cpp"
   INCLUDE_DIRS
   "include"
   REQUIRES

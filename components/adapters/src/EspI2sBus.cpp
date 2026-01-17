@@ -1,12 +1,15 @@
 #include "EspI2sBus.hpp"
 
-#include <esp_log.h>
-
 #include "BoardConfig.hpp"
+
+// IDF
+#include <esp_log.h>
 
 namespace adapters {
 
-EspI2sBus::EspI2sBus(int port) : mPort(port) {
+static constexpr const char* TAG = "EspI2sBus";
+
+EspI2sBus::EspI2sBus(const int& port) : mPort(port), mTxHandle(nullptr) {
     ESP_LOGI(TAG, "Creating I2S bus for port %d", mPort);
 }
 
@@ -72,9 +75,10 @@ bool EspI2sBus::init() {
         return false;
     }
 
-    ESP_LOGI(TAG, "I2S initialized (port=%d, rate=%u Hz, bits=%u, BCLK=%d, LRCK=%d, DOUT=%d)",
-             mPort, common::I2S_SAMPLE_RATE, common::I2S_BITS_PER_SAMPLE, common::I2S_BCLK_GPIO,
-             common::I2S_LRCK_GPIO, common::I2S_DOUT_GPIO);
+    // ESP_LOGI(TAG, "I2S initialized (port=%d, rate=%u Hz, bits=%u, BCLK=%d, LRCK=%d, DOUT=%d)",
+    //          mPort, common::I2S_SAMPLE_RATE, common::I2S_BITS_PER_SAMPLE, common::I2S_BCLK_GPIO,
+    //          common::I2S_LRCK_GPIO, common::I2S_DOUT_GPIO);
+
     return true;
 }
 
@@ -89,7 +93,8 @@ void EspI2sBus::deinit() {
     mTxHandle = nullptr;
 }
 
-bool EspI2sBus::write(const uint8_t* data, size_t size, size_t& bytesWritten, uint32_t timeoutMs) {
+bool EspI2sBus::write(const uint8_t* data, const size_t& size, size_t& bytesWritten,
+                      const uint32_t& timeoutMs) {
     if (mTxHandle == nullptr) {
         ESP_LOGE(TAG, "I2S not initialized");
         bytesWritten = 0;
@@ -107,7 +112,7 @@ bool EspI2sBus::write(const uint8_t* data, size_t size, size_t& bytesWritten, ui
 }
 
 bool EspI2sBus::isAvailable() const {
-    return mTxHandle != nullptr;
+    return (mTxHandle != nullptr);
 }
 
 }  // namespace adapters

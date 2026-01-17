@@ -2,9 +2,13 @@ idf_component_register(
   SRCS
   "src/OledSsd1306Display.cpp"
   "src/EspI2cBus.cpp"
+  "src/EspI2sBus.cpp"
+  "src/EspI2sPlayer.cpp"
   INCLUDE_DIRS
   "include"
   REQUIRES
   common
   driver
-  log)
+  log
+  esp_http_client
+  libmad)
