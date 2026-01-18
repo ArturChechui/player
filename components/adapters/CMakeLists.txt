@@ -10,5 +10,4 @@ idf_component_register(
   common
   driver
   log
-  esp_http_client
-  libmad)
+  freertos)

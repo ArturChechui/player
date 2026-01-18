@@ -1,9 +1,8 @@
 #include "EspI2sPlayer.hpp"
 
+#include <cmath>
 #include <cstring>
 
-#include "driver/i2s_std.h"
-#include "esp_http_client.h"
 #include "esp_log.h"
 
 namespace adapters {
@@ -51,10 +50,12 @@ bool EspI2sPlayer::play(const std::string& url) {
         mStatusCb(common::PlayerStatus::BUFFERING);
     }
 
-    // Create player task
-    if (xTaskCreate(playerTaskFn, "PlayerTask", 4096, this, 5, &mPlayerTask) != pdPASS) {
+    BaseType_t ok = xTaskCreate(playerTaskFn, "PlayerTask", 4096, this, 5, &mPlayerTask);
+
+    if (ok != pdPASS) {
         ESP_LOGE(TAG, "Failed to create player task");
         mIsPlaying = false;
+        mPlayerTask = nullptr;
         if (mStatusCb) {
             mStatusCb(common::PlayerStatus::ERROR);
         }
@@ -69,12 +70,12 @@ bool EspI2sPlayer::stop() {
         return true;
     }
 
-    ESP_LOGI(TAG, "Stopping playback");
+    ESP_LOGI(TAG, "Stopping playback...");
     mIsPlaying = false;
 
-    if (mPlayerTask) {
-        vTaskDelete(mPlayerTask);
-        mPlayerTask = nullptr;
+    // Wait until player task exits by itself
+    while (mPlayerTask != nullptr) {
+        vTaskDelay(pdMS_TO_TICKS(10));
     }
 
     if (mStatusCb) {
@@ -89,8 +90,22 @@ void EspI2sPlayer::setStatusCallback(common::PlayerStatusCallback cb) {
 }
 
 bool EspI2sPlayer::initI2s() {
-    // I2S configuration for S3 SuperMini → external DAC
-    i2s_std_config_t i2sConfig = {
+    if (mI2sTxHandle != nullptr) {
+        ESP_LOGW(TAG, "I2S already initialized");
+        return true;
+    }
+
+    // 1) Create I2S TX channel first ✅
+    i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(I2S_NUM_0, I2S_ROLE_MASTER);
+
+    esp_err_t ret = i2s_new_channel(&chan_cfg, &mI2sTxHandle, nullptr);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "i2s_new_channel failed: %s", esp_err_to_name(ret));
+        return false;
+    }
+
+    // 2) Configure I2S STD mode (Philips)
+    i2s_std_config_t std_cfg = {
         .clk_cfg = I2S_STD_CLK_DEFAULT_CONFIG(44100),
         .slot_cfg =
             I2S_STD_PHILIPS_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_STEREO),
@@ -110,53 +125,61 @@ bool EspI2sPlayer::initI2s() {
             },
     };
 
-    esp_err_t ret = i2s_channel_init_std_mode(mI2sTxHandle, &i2sConfig);
+    ret = i2s_channel_init_std_mode(mI2sTxHandle, &std_cfg);
     if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to init I2S: %s", esp_err_to_name(ret));
+        ESP_LOGE(TAG, "i2s_channel_init_std_mode failed: %s", esp_err_to_name(ret));
+        i2s_del_channel(mI2sTxHandle);
+        mI2sTxHandle = nullptr;
         return false;
     }
 
     ret = i2s_channel_enable(mI2sTxHandle);
     if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to enable I2S: %s", esp_err_to_name(ret));
+        ESP_LOGE(TAG, "i2s_channel_enable failed: %s", esp_err_to_name(ret));
+        i2s_del_channel(mI2sTxHandle);
+        mI2sTxHandle = nullptr;
         return false;
     }
 
     ESP_LOGI(TAG, "I2S initialized (BCLK=%d, LRCK=%d, DOUT=%d)", common::I2S_BCLK_GPIO,
              common::I2S_LRCK_GPIO, common::I2S_DOUT_GPIO);
+
     return true;
 }
 
 void EspI2sPlayer::deinitI2s() {
-    if (mI2sTxHandle) {
-        i2s_channel_disable(mI2sTxHandle);
-        mI2sTxHandle = nullptr;
-        ESP_LOGI(TAG, "I2S deinitialized");
+    if (!mI2sTxHandle) {
+        return;
     }
+
+    i2s_channel_disable(mI2sTxHandle);
+    i2s_del_channel(mI2sTxHandle);
+    mI2sTxHandle = nullptr;
+
+    ESP_LOGI(TAG, "I2S deinitialized");
 }
 
 void EspI2sPlayer::playerTaskFn(void* arg) {
     auto* player = static_cast<EspI2sPlayer*>(arg);
     player->playerLoop();
+
+    // Mark task as finished
+    player->mPlayerTask = nullptr;
     vTaskDelete(nullptr);
 }
 
 void EspI2sPlayer::playerLoop() {
     ESP_LOGI(TAG, "Player loop started for: %s", mCurrentUrl.c_str());
 
-    // TODO FR-03: Implement HTTP streaming + MP3 decoding
-    // For now, simulate playback
     if (mStatusCb) {
         mStatusCb(common::PlayerStatus::PLAYING);
     }
 
-    // Simulate 10 seconds of playback
-    for (int i = 0; i < 100 && mIsPlaying; i++) {
-        vTaskDelay(pdMS_TO_TICKS(100));
-    }
+    // For now: output real I2S audio (440Hz sine) for ~10 seconds
+    writeTone440Hz();
 
     if (mIsPlaying) {
-        ESP_LOGI(TAG, "Playback completed");
+        // finished naturally
         mIsPlaying = false;
         if (mStatusCb) {
             mStatusCb(common::PlayerStatus::STOPPED);
@@ -164,6 +187,61 @@ void EspI2sPlayer::playerLoop() {
     }
 
     ESP_LOGI(TAG, "Player loop exiting");
+}
+
+void EspI2sPlayer::writeTone440Hz() {
+    if (!mI2sTxHandle) {
+        ESP_LOGE(TAG, "I2S not initialized");
+        if (mStatusCb) {
+            mStatusCb(common::PlayerStatus::ERROR);
+        }
+        mIsPlaying = false;
+        return;
+    }
+
+    constexpr int sampleRate = 44100;
+    constexpr float freq = 440.0f;
+    constexpr float amplitude = 12000.0f;  // avoid clipping
+    constexpr int framesPerChunk = 256;    // small & stable
+
+    int16_t buffer[framesPerChunk * 2];  // stereo: L,R interleaved
+    float phase = 0.0f;
+    constexpr float twoPi = 6.28318530718f;
+
+    // Play for ~10 seconds
+    const int totalFrames = sampleRate * 10;
+    int framesWritten = 0;
+
+    while (mIsPlaying && framesWritten < totalFrames) {
+        for (int i = 0; i < framesPerChunk; i++) {
+            float s = sinf(phase) * amplitude;
+            int16_t sample = static_cast<int16_t>(s);
+
+            // stereo
+            buffer[i * 2 + 0] = sample;
+            buffer[i * 2 + 1] = sample;
+
+            phase += twoPi * freq / static_cast<float>(sampleRate);
+            if (phase >= twoPi) {
+                phase -= twoPi;
+            }
+        }
+
+        size_t bytesWritten = 0;
+        esp_err_t ret =
+            i2s_channel_write(mI2sTxHandle, buffer, sizeof(buffer), &bytesWritten, portMAX_DELAY);
+
+        if (ret != ESP_OK) {
+            ESP_LOGE(TAG, "i2s_channel_write failed: %s", esp_err_to_name(ret));
+            if (mStatusCb) {
+                mStatusCb(common::PlayerStatus::ERROR);
+            }
+            mIsPlaying = false;
+            return;
+        }
+
+        framesWritten += framesPerChunk;
+    }
 }
 
 }  // namespace adapters
