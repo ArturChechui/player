@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <string>
 
 #include "AudioTypes.hpp"
@@ -7,50 +8,44 @@
 
 namespace services {
 
-/**
- * @brief Manages audio playback and player state
- *
- * Wraps IPlayer adapter, tracks current station/status, and posts UI events
- * when playback state changes. Follows same service pattern as UiService.
- */
 class PlayerService {
    public:
-    /**
-     * @brief Construct PlayerService with player adapter
-     * @param player Audio player adapter (injected, owned by AppContext)
-     */
     explicit PlayerService(adapters::IPlayer& player);
+    ~PlayerService() = default;
 
     /**
-     * @brief Initialize player service and register status callback
-     * @return true if player adapter initialized successfully
+     * @brief Initialize player service
+     * @return true if successful
      */
     bool init();
 
     /**
-     * @brief Start playback of a station URL
-     * @param stationUrl HTTP stream URL (MP3 format)
-     * @return true if playback started, false if already playing or error
+     * @brief Play a station URL
+     * @param url Radio station URL (e.g., http://play.global.audio/radio164)
+     * @return true if playback started
      */
-    bool playStation(const std::string& stationUrl);
+    bool playStation(const std::string& url);
 
     /**
      * @brief Stop current playback
-     * @return true if stopped successfully
+     * @return true if successful
      */
     bool stop();
 
     /**
      * @brief Get current playback status
-     * @return Current PlayerStatus (IDLE/BUFFERING/PLAYING/STOPPED/ERROR)
      */
     common::PlayerStatus getStatus() const;
 
     /**
-     * @brief Get currently playing station URL
-     * @return Empty string if not playing
+     * @brief Get currently playing URL
      */
     std::string getCurrentUrl() const;
+
+    /**
+     * @brief Set callback for playback status changes
+     */
+    void setStatusCallback(common::PlayerStatusCallback cb);
 
    private:
     static constexpr const char* TAG = "PlayerService";
@@ -58,11 +53,8 @@ class PlayerService {
     adapters::IPlayer& mPlayer;
     common::PlayerStatus mStatus = common::PlayerStatus::IDLE;
     std::string mCurrentUrl;
+    common::PlayerStatusCallback mStatusCb = nullptr;
 
-    /**
-     * @brief Handle player status changes from adapter callback
-     * @param status New status reported by player
-     */
     void onPlayerStatusChanged(common::PlayerStatus status);
 };
 

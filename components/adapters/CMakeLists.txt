@@ -4,10 +4,14 @@ idf_component_register(
   "src/EspI2cBus.cpp"
   "src/EspI2sBus.cpp"
   "src/EspI2sPlayer.cpp"
+  "src/minimp3_impl.c"
   INCLUDE_DIRS
   "include"
+  "lib/minimp3"
   REQUIRES
   common
   driver
   log
-  freertos)
+  freertos
+  esp_http_client
+  esp-tls)
